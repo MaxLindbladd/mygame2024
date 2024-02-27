@@ -1,20 +1,33 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import 'react-native-gesture-handler';
+import { StyleSheet, Text, View, Dimensions } from 'react-native';
+import * as React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import HomeScreen from './app/screens/Homescreen';
+import { createStackNavigator } from '@react-navigation/stack';
+import { Provider } from 'react-redux';
+import { store } from './app/state/Store';
+import GameScreen from './app/screens/GameScreen';
+
+const Stack = createStackNavigator();
+
+
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
+    <Provider store={store}>
+      <NavigationContainer>
+        <Stack.Navigator>
+          <Stack.Screen 
+            name="Home" 
+            component={HomeScreen} 
+            options={{
+              headerShown: false // Piilottaa oletusotsikon
+            }} 
+          />
+          <Stack.Screen name="GameScreen" component={GameScreen} /*options={{ headerShown: false }}*/ />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
