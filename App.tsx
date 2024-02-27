@@ -8,6 +8,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
 import { store } from './app/state/Store';
 import GameScreen from './app/screens/GameScreen';
+import ShopScreen from './app/screens/ShopScreen';
 
 const Stack = createStackNavigator();
 
@@ -26,6 +27,8 @@ export default function App() {
             }} 
           />
           <Stack.Screen name="GameScreen" component={GameScreen} /*options={{ headerShown: false }}*/ />
+          <Stack.Screen name="ShopScreen" component={ShopScreen} /*options={{ headerShown: false }}*/ />
+        
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>

@@ -5,6 +5,7 @@ import React from 'react';
 import Header from '../components/Homescreencomponents/Header';
 import { useNavigation } from '@react-navigation/native'; 
 import GameScreen from './GameScreen'; // Korjattu nimi 'GameScreen'
+import { resetThrows } from '../state/slices/userData';
 
 export default function HomeScreen() {
     const counter = useSelector((state: RootState) => state.counter.value);
@@ -15,6 +16,8 @@ export default function HomeScreen() {
     const startGame = () => {
       // Dispatch actions or perform any other necessary logic
       // Navigate to the Game screen
+      dispatch(resetThrows());
+      
       navigation.navigate("GameScreen"); // Korjattu nimi 'GameScreen'
   };
 
