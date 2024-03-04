@@ -26,8 +26,8 @@ export default function App() {
               headerShown: false // Piilottaa oletusotsikon
             }} 
           />
-          <Stack.Screen name="GameScreen" component={GameScreen} /*options={{ headerShown: false }}*/ />
-          <Stack.Screen name="ShopScreen" component={ShopScreen} /*options={{ headerShown: false }}*/ />
+          <Stack.Screen name="GameScreen" component={GameScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ShopScreen" component={ShopScreen} options={{ headerShown: false }} />
         
         </Stack.Navigator>
       </NavigationContainer>

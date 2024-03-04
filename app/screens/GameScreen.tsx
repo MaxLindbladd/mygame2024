@@ -1,133 +1,233 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../state/Store';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch } from 'react-redux';
-
-
 
 export default function GameScreen() {
-  const navigation = useNavigation(); // Käytetään navigaatiota
+  const navigation = useNavigation(); 
+  const dispatch = useDispatch();
   const difficulty = useSelector((state: RootState) => state.counter.value);
-  const diceAmount = useSelector((state: RootState) => state.upgrades.diceAmmount); // Haetaan diceAmmount Redux-tilasta
+  const diceAmount = useSelector((state: RootState) => state.upgrades.diceAmmount);
   const [diceValues, setDiceValues] = useState<number[]>(Array.from({ length: diceAmount }, () => 0));
   const [score, setScore] = useState(0);
-  const opponentLevel = useSelector((state: RootState) => state.upgrades.opponentLevel);
-  const goal = difficulty + opponentLevel * 20;
-  const dispatch = useDispatch();
+  const opponentLevel = useSelector((state: RootState) => state.UserData.opponentLevel);
+  const goal = difficulty + opponentLevel **3;
   const money = useSelector((state: RootState) => state.UserData.money);
   const throws = useSelector((state: RootState) => state.UserData.throws);
+  const cards = useSelector((state: RootState) => state.upgrades.cards); // Lisätty kortit
   const diceModifier = useSelector((state: RootState) => state.upgrades.diceModifier);
-
-
+  
+  
   const rollDice = () => {
-    const newDiceValues = diceValues.map(() => Math.floor(Math.random() * 6) + (1 * diceModifier));
-    setDiceValues(newDiceValues);
-    const totalScore = newDiceValues.reduce((acc, currentValue) => acc + currentValue, 0);
-    setScore(prevScore => prevScore + totalScore);
-    dispatch({type: 'UserData/decrementthrows'});
-  };
+    dispatch({ type: 'UserData/decrementthrows' });
+    const baseDiceValues = diceValues.map(() => Math.floor(Math.random() * diceModifier) + 1);
+    const modifiedValues = baseDiceValues.map(value => value);
+    
+    setDiceValues(modifiedValues);
+  
+    const sum = modifiedValues.reduce((a, b) => a + b, 0);
+    const newScore = score + sum;
+    setScore(newScore);
 
+    
+    console.log('cards', cards);
+    //console.log('baseDiceValues', baseDiceValues);
+    console.log('modifiedValues', modifiedValues);
+    console.log('diceModifier', diceModifier);
+    console.log('sum', sum);
+    console.log('score', score);
+    console.log('newScore', newScore);
+    console.log("throws", throws);
+    console.log("nyt on normi nopat laskettuuuuuuuuuuuuuuuuuuu");
+
+    calculateCards(cards, baseDiceValues, sum,);
+  }
+  
+
+  const calculateCards = (cards: any[], baseDiceValues: number[], sum: number) => {
+    let newScore = score; // Alusta uusi pistemäärä nykyisellä pistemäärällä
+  
+    if (cards.length > 0) {
+      cards.forEach((card) => {
+        const modifier = card.modifier[0] as number;
+        const sameNumber = card.modifier[1] as number;
+        const counts: { [key: number]: number } = {};
+        baseDiceValues.forEach((x) => { counts[x] = (counts[x] || 0) + 1; });
+        const maxCount = Math.max(...Object.values(counts));
+  
+        console.log('sum', sum);
+        console.log('modifier', modifier);
+        console.log('card', card);
+        console.log("score1", newScore); // Käytä newScore muuttujaa
+  
+        if (sameNumber <= maxCount) {
+          sum *= modifier;
+          console.log('summod', sum);
+        }
+  
+        console.log("score2", newScore);
+      });
+      setScore(score+sum); 
+    }
+  
+    // Päivitä pistemäärä kerran kaikkien korttien käsittelyn jälkeen
+  }
+  
+  
+  
+  
+  
   useEffect(() => {
-    if (score >= goal ) {
-      alert('You won! your score was'+ score);
+    if (score >= goal && opponentLevel < 10) {
+      
+      alert('You won this round! Your score was ' + score);
+
+      setTimeout(() => {
       setScore(0);
       navigateToShop();
       dispatch({type: 'upgrades/incrementOpponentLevel'});
       dispatch({type: 'UserData/incrementMoneyByAmmount', payload: (throws*5)});
-    }
-  }, [diceValues, diceAmount]);
-
+      dispatch({type: 'UserData/incrementOpponentLevel'});
+      }
+      , 1500);
+    
+  }
+  }, [diceValues, diceAmount,score]);
+  
   useEffect(() => {
     setDiceValues(Array.from({ length: diceAmount }, () => 0));
-  }
-  , [diceAmount]);
-
-useEffect(() => {
-  if (throws === 0 && score < goal) {
-    alert('You lost!');
-    setScore(0);
-    navigateToHome();
-    dispatch({type: 'upgrades/resetUpgrades'});
-  }
-  }, [throws]);
-
+  }, [diceAmount]);
   
-
-
+  useEffect(() => {
+    if (throws === 0 && score < goal) {
+      alert('You lost!');
+      setScore(0);
+      navigateToHome();
+      dispatch({type: 'upgrades/resetUpgrades'});
+      dispatch({type: 'UserData/resetOpponentLevel'});
+    }
+  }, [throws]);
+  
+  useEffect(() => {
+    if (opponentLevel === 10 && score >= goal) {
+      alert('You won the game! Buy full version');
+      setScore(0);
+      navigateToHome();
+      dispatch({type: 'upgrades/resetUpgrades'});
+      dispatch({type: 'UserData/resetOpponentLevel'});
+    }
+  }, [opponentLevel, diceValues]);
+  
   const navigateToShop = () => {
-    navigation.navigate("ShopScreen"); // Korjattu nimi 'GameScreen'
+    navigation.navigate("ShopScreen");
   };
-
-
+  
   const navigateToHome = () => {
-    navigation.navigate("Home"); // Korjattu nimi 'GameScreen'
-  }
+    navigation.navigate("Home");
+  };
+  
+   return (
+        <View style={styles.container}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Dice Game</Text>
+          </View>
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.counterContainer}>
-        <Text>noppa game</Text>
-        <Text>{goal} points to get</Text>
-      </View>
-      <View style={styles.buttonContainer}>
-      {diceValues.map((value, index) => (
-        <Text key={index}>{`Dice ${index + 1}: ${value}`}</Text>
-      ))}
-      </View>
-      <Text>Score = {score}</Text>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity onPress={rollDice}>
-          <Text style={styles.button}>Roll the dice</Text>
-        </TouchableOpacity>
-      </View>
-      <TouchableOpacity onPress={navigateToShop}>
-        <Text style={styles.button}>Shop</Text>
-      </TouchableOpacity>
+          <View style={styles.opponentContainer}>
+          <Text style={styles.text}>Opponent Level: {opponentLevel}</Text>
+          
+            <Text style={styles.text}>{goal} points to get</Text>
+          </View>
 
-      
-      <Text>{throws} throws</Text>
-      <Text>{diceAmount} bugimetsästy noppa</Text>
-    </View>
-  );
+            <View style={styles.diceContainer}>
+            {diceValues.map((value, index) => (
+                    <View key={index} style={styles.dice}>
+                        <Text key={index} style={styles.diceText}>{value}</Text>
+                    </View>
+                    // You can replace the empty View with images or animations representing dice faces
+                ))}
+            </View>
+            <Text style={styles.text}>Score = {score}</Text>
+
+
+            
+            <View style={styles.buttonContainer}>
+            <Text style={styles.text}>{throws} throws</Text>
+                <TouchableOpacity onPress={rollDice}>
+                    <Text style={styles.button}>Roll the dice</Text>
+                </TouchableOpacity>
+                
+            </View>
+            
+       
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'yellow',
-    alignItems: 'center',
-    justifyContent: 'center',
+    container: {
+        flex: 1,
+        backgroundColor: '#111',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    headerContainer: {
+      position: 'absolute',
+      top: 0,
+      backgroundColor: '#333',
+      width: '100%',
+      alignItems: 'center',
+      padding: 20,
   },
-  text: {
-    fontSize: 18,
-    marginBottom: 20,
+    opponentContainer: {
+      flexDirection: 'row',
+      backgroundColor: '#333',
+      alignItems: 'center',
+      padding: 20,
+      justifyContent: 'space-between',
+      borderRadius: 10,
+      position: 'absolute',
+      top: 120,
+      width: '80%',
+
   },
-  counterContainer: {
-    backgroundColor: 'red',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 50,
-  },
-  counter: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    padding: 20,
-  },
-  button: {
-    backgroundColor: 'blue',
-    color: 'white',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginHorizontal: 5,
-    borderRadius: 5,
-  },
-  startContainer: {
-    padding: 20,
+    title: {
+        fontSize: 36,
+        color: '#fff',
+        marginTop: 20,
+    },
+    diceContainer: {
+        flexDirection: 'row',
+        marginBottom: 20,
+    },
+    dice: {
+        width: 50,
+        height: 50,
+        backgroundColor: '#333',
+        borderRadius: 5,
+        marginRight: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    text: {
+        fontSize: 15,
+        color: '#fff',
+        paddingVertical: 10,
+    },
+    buttonContainer: {
+        alignItems: 'center',
+        position: 'absolute',
+        bottom: 100,
+    },
+    button: {
+        backgroundColor: '#777',
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 5,
+        color: '#fff',
+    },
+    diceText: {
+      fontSize: 14,
+      color: '#fff',
   },
 });

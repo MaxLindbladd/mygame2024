@@ -1,34 +1,38 @@
-import { reset } from './../../../node_modules/colorette/index.d';
+import { iconName } from './../../../node_modules/@fortawesome/free-solid-svg-icons/fa1.d';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { cards } from './../../components/Gamescreencomponents/cards'; // Tuodaan kortit
 
+// Korttien määritelmät
 interface Card {
     id: number;
-    modifierId: number;
+    modifier: number[] | number[][];
+    name: string;
+    price: number;
+    description: string;
+    image: null | string; // Oletetaan, että kuvatiedosto on merkkijono tai null-arvo
+    rarity: string; // Lisätty harvinaisuuden määrittely
+    icon: string; // Lisätty ikonin määrittely
 }
 
-interface Modifier {
-    id: number;
-    modifierFunction: (value: number) => number;
-}
 
 interface UpgradeState {
     diceAmmount: number;
     diceModifier: number;
-    cardammount: number;
-    cardmodifier: [number, number][];
+    cardAmount: number;
     opponentLevel: number;
     cards: Card[];
 }
 
+// Alustetaan tila
 const initialState: UpgradeState = {
     diceAmmount: 1,
-    diceModifier: 1,
-    cardammount: 0,
-    cardmodifier: [[3, 6], [2, 3]], // [kerroin, luku]
+    diceModifier: 6,
+    cardAmount: 0,
     opponentLevel: 0,
     cards: [],
 };
 
+// Luodaan slice
 export const upgradesSlice = createSlice({
     name: 'upgrades',
     initialState,
@@ -48,58 +52,51 @@ export const upgradesSlice = createSlice({
         decrementDiceModifier: (state) => {
             state.diceModifier -= 1;
         },
-        incrementDiceModifierByAmmount: (state, action: PayloadAction<number>) => {
+        incrementDiceModifierByAmount: (state, action: PayloadAction<number>) => {
             state.diceModifier += action.payload;
         },
-        incrementCardAmmount: (state) => {
-            state.cardammount += 1;
+        incrementCardAmount: (state) => {
+            state.cardAmount += 1;
         },
-        decrementCardAmmount: (state) => {
-            state.cardammount -= 1;
+        decrementCardAmount: (state) => {
+            state.cardAmount -= 1;
         },
         incrementOpponentLevel: (state) => {
             state.opponentLevel += 1;
         },
-        addCard: (state, action: PayloadAction<number>) => {
-            const cardId = action.payload;
-            if (state.cards.length < 5 && !state.cards.some(card => card.id === cardId)) {
-                state.cards.push({ id: cardId, modifierId: 1 }); // Oletusmodifier ID
-            }
+        addCard: (state, action: PayloadAction<Card>) => {
+            state.cards.push(action.payload);
+            state.cardAmount += 1;
         },
         removeCard: (state, action: PayloadAction<number>) => {
             const cardId = action.payload;
             state.cards = state.cards.filter(card => card.id !== cardId);
-        },
-        setModifier: (state, action: PayloadAction<{ cardId: number, modifierId: number }>) => {
-            const { cardId, modifierId } = action.payload;
-            const card = state.cards.find(card => card.id === cardId);
-            if (card) {
-                card.modifierId = modifierId;
-            }
+            state.cardAmount -= 1;
         },
         resetUpgrades: (state) => {
             state.diceAmmount = 1;
-            state.diceModifier = 1;
-            state.cardammount = 0;
+            state.diceModifier = 6;
+            state.cardAmount = 0;
             state.opponentLevel = 0;
             state.cards = [];
         },
     },
 });
 
+// Viedään reducer ja actions
 export const {
     incrementDice,
     decrementDice,
     incrementDiceByAmount,
     incrementDiceModifier,
     decrementDiceModifier,
-    incrementDiceModifierByAmmount,
-    incrementCardAmmount,
-    decrementCardAmmount,
+    incrementDiceModifierByAmount,
+    incrementCardAmount,
+    decrementCardAmount,
     addCard,
     removeCard,
-    setModifier,
     resetUpgrades,
+    
 } = upgradesSlice.actions;
 
 export default upgradesSlice.reducer;

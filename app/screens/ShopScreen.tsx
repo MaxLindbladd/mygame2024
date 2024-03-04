@@ -1,128 +1,252 @@
-import { StyleSheet, Text, View } from 'react-native'
-import React from 'react'
-import { TouchableOpacity } from 'react-native-gesture-handler'
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../state/Store';
-import { useDispatch } from 'react-redux';
 import { incrementDice } from '../state/slices/upgrades';
-import { useState, useEffect } from 'react'
 import { resetThrows } from '../state/slices/userData';
-
-
-
+import { Card } from '../components/Gamescreencomponents/cards';
+import { FontAwesome5 } from '@expo/vector-icons';
+import { cards } from '../components/Gamescreencomponents/cards';
 
 export default function ShopScreen() {
-    const modifier = useSelector((state: RootState) => state.upgrades.diceModifier);
-    const navigation = useNavigation(); // Käytetään navigaatiota
+    const navigation = useNavigation();
     const money = useSelector((state: RootState) => state.UserData.money);
-    const diceAmmount = useSelector((state: RootState) => state.upgrades.diceAmmount);
+    const diceAmount = useSelector((state: RootState) => state.upgrades.diceAmmount);
     const dispatch = useDispatch();
-    
-  
+    const [cardsList, setCardsList] = useState<Card[]>([]);
+    const diceModifier = useSelector((state: RootState) => state.upgrades.diceModifier);
+
     useEffect(() => {
-      // Suoritetaan kun komponentti on ladattu
-      
-      dispatch(resetThrows()); // Esimerkki toiminnosta komponentin lataamisen yhteydessä
+        dispatch(resetThrows());
+        generateRandomCards();
     }, []);
-  
 
-
+    const generateRandomCards = () => {
+        const randomCards: Card[] = [];
+        const usedIds: number[] = [];
+    
+        while (randomCards.length < 2) {
+            const randomNumber = Math.random() * 100;
+            let selectedRarity = '';
+    
+            if (randomNumber <= 20) selectedRarity = "rare";
+            else if (randomNumber <= 80) selectedRarity = "uncommon";
+            else selectedRarity = "common";
+    
+            const eligibleCards = cards.filter(card => card.rarity === selectedRarity);
+    
+            if (eligibleCards.length > 0) {
+                const randomIndex = Math.floor(Math.random() * eligibleCards.length);
+                const randomCard = eligibleCards[randomIndex];
+    
+                if (!randomCards.some(card => card.id === randomCard.id) && !usedIds.includes(randomCard.id)) {
+                    randomCards.push(randomCard);
+                    usedIds.push(randomCard.id);
+                }
+            }
+        }
+    
+        setCardsList(randomCards);
+    };
 
     const buyDice = () => {
-        console.log("buy dice")
         dispatch(incrementDice());
-        dispatch({type: 'UserData/decrementMoneyByAmmount', payload: 10});
-    }
+        dispatch({ type: 'UserData/decrementMoneyByAmmount', payload: 10 });
+    };
 
     const BuyModifier = () => {
-        dispatch({type: 'UserData/decrementMoneyByAmmount', payload: 5});
-        dispatch({type: 'upgrades/incrementDiceModifier'});
-        console.log("buy modifier")
-    }
+        dispatch({ type: 'UserData/decrementMoneyByAmmount', payload: 5 });
+        dispatch({ type: 'upgrades/incrementDiceModifier' });
+    };
 
-    const buyCard = () => {
-        console.log("buy card")
-    }
+    const buyCard = (id: number) => {
+        setCardsList(cardsList.filter(card => card.id !== id));
+        dispatch({type: 'upgrades/addCard', payload: cards.find(card => card.id === id)!})
+        dispatch({ type: 'UserData/decrementMoneyByAmmount', payload: cards.find(card => card.id === id)!.price });
+    };
 
     const nextOpponent = () => {
-        console.log("next opponent")
         navigation.navigate("GameScreen");
-    }
+    };
 
-  return (
-    <View style= {styles.container}>
+    const renderCard = ({ item }: { item: Card }) => (
+        <TouchableOpacity onLongPress={() => buyCard(item.id)} disabled={item.price > money}>
+            <View style={styles.cardContainer}>
+                <View style={styles.cardDetails}>
+                    <Text style={styles.cardName}>{item.name}</Text>
+                    <FontAwesome5 name={item.icon} size={24} />
+                    <Text style={styles.cardDescription}>{item.description}</Text>
+                    <Text style={styles.cardDescription}>Rarity: {item.rarity}</Text>
+                    <Text style={styles.cardPrice}>Price: {item.price}€</Text>
+                    {item.price > money && <Text style={{ color: 'red' }}>Not enough money</Text>}
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
 
-        <Text>Shop</Text>
-        <Text>{money} money</Text>
-        <Text> Dice price 10€</Text>
-        <Text> Dice Modifier price 5€</Text>
-    
-        
-    <View style={styles.buttonContainer}>
+    return (
+        <View style={styles.container}>
+            <View style={styles.headerContainer}>
+                <Text style={styles.title}>Shop</Text>
+            </View>
+            
+            <View style={styles.moneyContainer}>
+                <Text style={styles.moneyText}>Money: {money}€</Text>
+            </View>
 
-       {diceAmmount < 5 && money >= 10 &&
+            <Text style={styles.sectionTitle}>Buy cards</Text>
 
-          <TouchableOpacity onPress={buyDice}>
-            <Text style={styles.button}>Buy Dice</Text>
-          </TouchableOpacity>
-         }
+            <View style={styles.flatListContainer}>
+                <FlatList
+                    style={styles.flatList}
+                    data={cardsList}
+                    renderItem={renderCard}
+                    keyExtractor={item => item.id.toString()}
+                    horizontal={true}
+                />
+            </View>
 
-        { money >= 5 &&
-<TouchableOpacity onPress={BuyModifier}>
-      <Text style={styles.button}>Buy Dice Modifier</Text>
-      </TouchableOpacity>
-}
-      <TouchableOpacity onPress={buyCard}>
-      <Text style={styles.button}>Buy Card</Text>
-      </TouchableOpacity>
-      </View>
+            <View style={styles.priceContainer}>
+                <Text style={styles.text}>Dices: {diceAmount}</Text>
+                <Text style={styles.text}>Dice faces: {diceModifier}</Text>
+            </View>
 
-      <TouchableOpacity onPress={nextOpponent}>
-      <Text style={styles.button}>Next opponent</Text>
-      </TouchableOpacity>
+            <View style={styles.priceContainer}>
+                <Text style={styles.text}>Dice price: 10€</Text>
+                <Text style={styles.text}>Dice face price: 5€</Text>
+            </View>
 
-      <Text>{diceAmmount} dice</Text>
-        <Text>{modifier} dice modifier</Text>
-    </View>
-  )
+            <View style={styles.buttonContainer}>
+                {diceAmount < 5 && money >= 10 &&
+                    <TouchableOpacity onPress={buyDice}>
+                        <Text style={styles.button}>Buy dice</Text>
+                    </TouchableOpacity>
+                }
+
+                {money >= 5 &&
+                    <TouchableOpacity onPress={BuyModifier}>
+                        <Text style={styles.button}>Buy face </Text>
+                    </TouchableOpacity>
+                }
+            </View>
+
+            <View style={styles.nextOpponentContainer}>
+                <TouchableOpacity onPress={nextOpponent}>
+                    <Text style={styles.button}>Next Opponent</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'yellow',
+        backgroundColor: '#111',
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    headerContainer: {
+        backgroundColor: '#333',
+        width: '100%',
+        alignItems: 'center',
+        padding: 20,
+        marginBottom: 20,
+        position: 'absolute',
+        top: 0,
+    },
+    title: {
+        marginTop: 20,
+        fontSize: 36,
+        color: '#fff',
+        
+    },
+    priceContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#333',
+        padding: 5,
+        borderRadius: 10,
+        marginBottom: 40,
+        alignItems: 'center',
+        justifyContent: 'space-evenly',
+        width: '80%',
     },
     text: {
-        fontSize: 18,
-        marginBottom: 20,
+        fontSize: 16,
+        color: '#fff',
+        marginHorizontal: 10,
     },
-    counterContainer: {
-        backgroundColor: 'red',
+    moneyContainer: {
+        backgroundColor: '#333',
+        borderRadius: 10,
+        width: '80%',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 20,
+        marginTop: 20,
+        marginBottom: 40,
+        position: 'absolute',
+        top: 120,
     },
-    counter: {
-        fontSize: 24,
-        fontWeight: 'bold',
+    moneyText: {
+        fontSize: 16,
+        color: '#fff',
+        padding: 10,
+    },
+    sectionTitle: {
+        fontSize: 20,
+        color: '#fff',
         marginBottom: 10,
+    },
+    cardContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginVertical: 10,
+        marginHorizontal: 5,
+        padding: 10,
+        backgroundColor: '#fff',
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: 'gray',
+    },
+    cardDetails: {
+        flex: 1,
+        marginLeft: 10,
+    },
+    cardName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
+    cardDescription: {
+        fontSize: 14,
+        marginBottom: 5,
+    },
+    cardPrice: {
+        fontSize: 16,
     },
     buttonContainer: {
         flexDirection: 'row',
+        marginBottom: 20,
+        position: 'absolute',
+        bottom: 110,
     },
     button: {
-        backgroundColor: 'blue',
-        color: 'white',
-        paddingHorizontal: 15,
+        backgroundColor: '#777',
+        paddingHorizontal: 20,
         paddingVertical: 10,
-        marginHorizontal: 5,
         borderRadius: 5,
+        color: '#fff',
+        marginHorizontal: 10,
     },
-    startContainer: {
-        
-        padding: 20,
+    nextOpponentContainer: {
+        position: 'absolute',
+        bottom: 50,
     },
+    flatList: {
+        width: '100%',
+    },
+    flatListContainer: {
+        width: '100%',
+        height: 200,
+    }
 });
